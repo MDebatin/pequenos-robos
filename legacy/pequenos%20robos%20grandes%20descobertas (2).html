@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pequenos Robôs, Grandes Descobertas — EBAS</title>
+<style>
+:root{--ink:#25344a;--blue:#6ec6e8;--yellow:#ffd66b;--pink:#ff9fb2;--mint:#8be0c2;--purple:#b8a6f6;--paper:#f5fbff}
+*{box-sizing:border-box}body{margin:0;font-family:"Trebuchet MS",Arial,sans-serif;background:linear-gradient(135deg,#e7f8ff,#fff5e9);color:var(--ink);min-height:100vh}
+button{font:inherit;cursor:pointer;border:0;border-radius:18px;font-weight:800;color:var(--ink);box-shadow:0 4px 0 #00000013;touch-action:manipulation}
+button:focus-visible,[draggable=true]:focus-visible{outline:4px solid #3949ab;outline-offset:3px}
+header{text-align:center;padding:16px 12px 8px}h1{margin:0;font-size:clamp(1.35rem,3.2vw,2.5rem);color:#365a8c}header p{margin:6px 0 0;font-size:clamp(.9rem,1.7vw,1.1rem)}
+main{max-width:1200px;margin:auto;padding:10px 16px 22px}.toolbar{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px}.toolbar button{padding:11px 16px;background:#fff}
+.screen{display:none}.screen.active{display:block}
+.panel{background:#ffffffd9;border:3px solid white;border-radius:28px;padding:clamp(14px,2.5vw,26px);box-shadow:0 12px 30px #38577812}
+.welcome{text-align:center;max-width:850px;margin:0 auto}.welcome .mascot{font-size:clamp(5rem,14vw,9rem);animation:bob 2s infinite ease-in-out}.welcome h2{font-size:clamp(1.4rem,3vw,2rem);margin:0 0 8px}.welcome p{font-size:1.1rem;line-height:1.5}.big-button{background:var(--yellow);padding:16px 28px;font-size:1.1rem;margin:7px}.secondary{background:#e8f5ff;padding:12px 18px}
+.game-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.prompt{font-size:clamp(1.1rem,2.3vw,1.5rem);font-weight:900;background:#fff3c4;padding:12px 18px;border-radius:18px;flex:1}.game-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,.8fr);gap:16px;align-items:stretch}
+.scene{min-height:360px;background:linear-gradient(#dff6ff,#f6fcff);border-radius:24px;padding:12px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.scene:before{content:"";position:absolute;bottom:0;left:0;right:0;height:20%;background:#c9f1d7;border-radius:50% 50% 0 0}
+.robot-svg{width:min(100%,480px);height:auto;z-index:1;overflow:visible}
+.dropzone{cursor:pointer;transition:filter .2s}.dropzone:hover{filter:brightness(1.06)}.dropzone.target{stroke:#f0a900;stroke-width:5;stroke-dasharray:7 5;animation:pulse 1s infinite}
+.pieces{display:grid;grid-template-columns:repeat(2,minmax(100px,1fr));gap:12px;align-content:center}
+.piece{background:white;border:3px solid #e9f0f6;border-radius:22px;min-height:125px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;user-select:none;touch-action:manipulation}
+.piece svg{width:76px;height:76px;pointer-events:none}.piece span{font-size:.9rem;font-weight:800}.piece:active{transform:scale(.97)}.piece[aria-disabled=true]{opacity:.35;pointer-events:none}
+.feedback{text-align:center;font-size:1.1rem;font-weight:800;min-height:36px;padding:8px}.progress{display:flex;justify-content:center;gap:8px;margin:10px}.dot{width:15px;height:15px;border-radius:50%;background:#d9e3ed}.dot.done{background:#5dc99e}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}.activity{padding:18px;background:#fff;border-radius:22px;text-align:center}.activity .emoji{font-size:3rem}.activity h3{margin:8px 0}.activity button{padding:11px 16px;background:#c8f0e2}
+.small{font-size:.9rem;color:#52647a}.footer{text-align:center;padding:14px;font-size:.85rem;color:#62758a}
+@keyframes bob{50%{transform:translateY(-10px) rotate(3deg)}}@keyframes pulse{50%{opacity:.6}}@keyframes wiggle{25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+@media(max-width:700px){.game-grid{grid-template-columns:1fr}.scene{min-height:300px}.pieces{grid-template-columns:repeat(4,minmax(65px,1fr));gap:7px}.piece{min-height:90px}.piece svg{width:48px;height:48px}.piece span{font-size:.72rem}}
+</style>
+</head>
+<body>
+<header>
+<h1>🤖 Pequenos Robôs, Grandes Descobertas</h1>
+<p>Brincar, explorar e descobrir o mundo da tecnologia! · EBAS</p>
+</header>
+<main>
+<div class="toolbar">
+<button id="soundBtn" aria-label="Ativar ou silenciar som">🔊 Som ligado</button>
+<button id="repeatBtn">🗣️ Ouvir novamente</button>
+<button id="homeBtn">🏠 Início</button>
+<button id="fullBtn">⛶ Tela cheia</button>
+</div>
+<section id="home" class="screen active panel welcome">
+<div class="mascot" aria-hidden="true">🤖</div>
+<h2>Olá, pequenos exploradores!</h2>
+<p>Eu sou o Robô Curioso! Vamos brincar, encontrar cores, descobrir formas, ouvir sons e ajudar meus amigos robôs?</p>
+<p class="small">Toque em começar e escute as instruções. Não precisa saber ler!</p>
+<button class="big-button" id="startBtn">🚀 Vamos brincar!</button>
+<div class="cards">
+<div class="activity"><div class="emoji">🎨</div><h3>Cores dos robôs</h3><p>Encontre a cor pedida.</p><button data-game="colors">Brincar</button></div>
+<div class="activity"><div class="emoji">🔺</div><h3>Formas mágicas</h3><p>Ajude a completar o robô.</p><button data-game="shapes">Brincar</button></div>
+<div class="activity"><div class="emoji">🧭</div><h3>Caminho do robô</h3><p>Escolha para onde ir.</p><button data-game="path">Brincar</button></div>
+<div class="activity"><div class="emoji">👀</div><h3>Robôs iguais</h3><p>Encontre o par.</p><button data-game="memory">Brincar</button></div>
+<div class="activity"><div class="emoji">🔊</div><h3>Descubra os sons</h3><p>Ouça e escolha a figura.</p><button data-game="sounds">Brincar</button></div>
+<div class="activity"><div class="emoji">🛠️</div><h3>Crie seu robô</h3><p>Escolha peças e cores.</p><button data-game="create">Brincar</button></div>
+</div>
+</section>
+
+<section id="game" class="screen panel">
+<div class="game-top"><div class="prompt" id="prompt">Vamos brincar!</div><button class="secondary" id="nextBtn">Próximo ➜</button></div>
+<div id="gameContent"></div>
+<div class="feedback" id="feedback" aria-live="polite"></div>
+<div class="progress" id="progress"></div>
+</section>
+<section id="teacher" class="screen panel">
+<h2>🌱 Dicas para a professora</h2>
+<ul>
+<li>Convide as crianças a se revezarem no computador ou na lousa digital.</li>
+<li>Nomeie cores, formas, sons e direções durante a brincadeira.</li>
+<li>Para os menores, explore livremente o toque e a relação de causa e efeito.</li>
+<li>Amplie a experiência fora da tela com blocos, caixas, formas de papel e caminhos no chão.</li>
+</ul>
+<button class="big-button" id="teacherBack">Voltar ao jogo</button>
+</section>
+<div class="footer">Jogo educativo para explorar em grupo · Sem pontuação competitiva e sem pressa 💛</div>
+</main>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+let soundOn = true, currentGame = 'shapes', step = 0, completed = 0, shapeLevel = 1, level = 1, selectedPiece = null, voice = null, createParts = [], createPhase = 1, robotDesign = {body:'▦',color:'#6dc8ee',eyes:'👀',accessory:'⭐'};
+const screens = ['home','game','teacher'];
+function show(id){screens.forEach(s=>$('#'+s).classList.toggle('active',s===id));}
+function speak(text){
+  if(!soundOn) return;
+  try{
+    if(!('speechSynthesis' in window)) { beep(520,.12); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang='pt-BR'; u.rate=.86; u.pitch=1.12; u.volume=.95;
+    const voices=speechSynthesis.getVoices(); const pt=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('pt-br'))||voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('pt'));
+    if(pt)u.voice=pt;
+    speechSynthesis.speak(u);
+  }catch(e){beep(520,.12)}
+}
+function beep(freq=600,dur=.12){
+ if(!soundOn)return;
+ try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(.001,c.currentTime);g.gain.exponentialRampToValueAtTime(.12,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+dur+.03);o.onended=()=>c.close()}catch(e){}
+}
+function cheer(){[523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,.18),i*110))}
+function setPrompt(t, say=true){$('#prompt').textContent=t;if(say)speak(t)}
+function sayAgain(){
+ const t=$('#prompt').textContent;
+ if(currentGame==='shapes')speak('Vamos encontrar a forma que falta no robô. '+t);
+ else speak(t);
+}
+function setFeedback(t,good=false){$('#feedback').textContent=t;if(good)cheer();else beep(360,.09)}
+function progress(total,done){$('#progress').innerHTML=Array.from({length:total},(_,i)=>`<span class="dot ${i<done?'done':''}"></span>`).join('')}
+function start(game='shapes'){
+ currentGame=game;step=0;completed=0;shapeLevel=1;level=1;selectedPiece=null;createParts=[];createPhase=1;robotDesign={body:'▦',color:'#6dc8ee',eyes:'👀',accessory:'⭐'};
+ show('game');$('#feedback').textContent='';$('#nextBtn').style.display='none';
+ render();
+}
+function robotSVG(slots=true){
+ const slotMarkup = slots ? `
+ <g class="dropzone target" data-slot="circle" transform="translate(112 143) scale(.36)"><circle cx="50" cy="50" r="35" fill="#ffffff55" stroke="#e7a72e" stroke-width="6" stroke-dasharray="10 8"/></g>
+ <g class="dropzone" data-slot="square" transform="translate(157 143) scale(.36)"><rect x="17" y="17" width="66" height="66" rx="8" fill="#ffffff55" stroke="#397a9c" stroke-width="6" stroke-dasharray="10 8"/></g>
+ <g class="dropzone" data-slot="triangle" transform="translate(202 143) scale(.36)"><path d="M50 12 L89 83 L11 83 Z" fill="#ffffff55" stroke="#397a9c" stroke-width="6" stroke-dasharray="10 8" stroke-linejoin="round"/></g>
+ <g class="dropzone" data-slot="rectangle" transform="translate(140 190) scale(.36)"><rect x="10" y="28" width="80" height="44" rx="7" fill="#ffffff55" stroke="#397a9c" stroke-width="6" stroke-dasharray="10 8"/></g>` : '';
+ return `<svg class="robot-svg" viewBox="0 0 360 350" role="img" aria-label="Robô com espaços para encaixar formas geométricas">
+ <ellipse cx="180" cy="320" rx="95" ry="12" fill="#b9dce8"/>
+ <rect x="94" y="130" width="172" height="122" rx="24" fill="#91d7ed" stroke="#397a9c" stroke-width="4"/>
+ <rect x="112" y="250" width="48" height="48" rx="10" fill="#a8b7d1" stroke="#397a9c" stroke-width="4"/><rect x="200" y="250" width="48" height="48" rx="10" fill="#a8b7d1" stroke="#397a9c" stroke-width="4"/>
+ <rect x="56" y="145" width="38" height="85" rx="18" fill="#ffbd70" stroke="#397a9c" stroke-width="4"/><rect x="266" y="145" width="38" height="85" rx="18" fill="#ffbd70" stroke="#397a9c" stroke-width="4"/>
+ <rect x="112" y="37" width="136" height="90" rx="25" fill="#ffe29a" stroke="#397a9c" stroke-width="4"/>
+ <path d="M180 37V18" stroke="#397a9c" stroke-width="5" stroke-linecap="round"/><circle cx="180" cy="13" r="9" fill="#ff91a7" stroke="#397a9c" stroke-width="3"/>
+ <circle cx="148" cy="73" r="10" fill="#fff" stroke="#397a9c" stroke-width="3"/><circle cx="212" cy="73" r="10" fill="#fff" stroke="#397a9c" stroke-width="3"/><circle cx="150" cy="74" r="4" fill="#25344a"/><circle cx="210" cy="74" r="4" fill="#25344a"/><path d="M151 98 Q180 116 209 98" fill="none" stroke="#397a9c" stroke-width="4" stroke-linecap="round"/>
+ ${slotMarkup}</svg>`;
+}
+const shapes=[
+ {name:'círculo',color:'#ff8da1',kind:'circle',slot:'circle',level:1},
+ {name:'quadrado',color:'#6dc8ee',kind:'square',slot:'square',level:1},
+ {name:'triângulo',color:'#ffd15c',kind:'triangle',slot:'triangle',level:2},
+ {name:'retângulo',color:'#a99af5',kind:'rectangle',slot:'rectangle',level:3}
+];
+function shapeSVG(s,fill=s.color,stroke='#38516b',strokeWidth=4){
+ let shape='';
+ if(s.kind==='circle')shape=`<circle cx="50" cy="50" r="35"`;
+ else if(s.kind==='square')shape=`<rect x="17" y="17" width="66" height="66" rx="8"`;
+ else if(s.kind==='triangle')shape=`<path d="M50 12 L89 83 L11 83 Z"`;
+ else shape=`<rect x="10" y="28" width="80" height="44" rx="7"`;
+ return `<svg viewBox="0 0 100 100"><${shape.slice(1)} fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-dasharray="${fill==='#ffffff55'?'8 6':'none'}"/></svg>`;
+}
+function shapeTarget(s){
+ const transforms={circle:'translate(112 143) scale(.36)',square:'translate(157 143) scale(.36)',triangle:'translate(202 143) scale(.36)',rectangle:'translate(140 190) scale(.36)'};
+ return `<g class="dropzone ${completed===0&&s.slot==='circle'?'target':''}" data-slot="${s.slot}" transform="${transforms[s.slot]}">${shapeSVG(s,'#ffffff55','#397a9c',6).replace('<svg viewBox="0 0 100 100">','').replace('</svg>','')}</g>`;
+}
+function renderShapes(){
+ const available=shapes.filter(s=>s.level<=shapeLevel);
+ const order=[...available].sort(()=>Math.random()-.5);
+ $('#gameContent').innerHTML=`<div class="game-grid"><div class="scene">${robotSVG(false).replace('</svg>',available.map(shapeTarget).join('')+'</svg>')}</div><div class="pieces">${order.map(s=>`<button class="piece" draggable="true" data-piece="${s.name}" aria-label="Forma ${s.name}">${shapeSVG(s)}<span>${s.name}</span></button>`).join('')}</div></div><p style="text-align:center;font-weight:800">Fase ${shapeLevel} de 3</p>`;
+ const slots=[...document.querySelectorAll('.dropzone')];
+ document.querySelectorAll('[data-piece]').forEach(el=>{
+  el.addEventListener('dragstart',e=>{selectedPiece=el.dataset.piece;e.dataTransfer.setData('text/plain',el.dataset.piece)});
+  el.addEventListener('click',()=>{selectedPiece=el.dataset.piece;document.querySelectorAll('[data-piece]').forEach(p=>p.style.outline='');el.style.outline='4px solid #e7a72e';speak(`Você escolheu o ${el.dataset.piece}. Agora encontre o espaço igual no robô.`)});
+ });
+ slots.forEach(slot=>{
+  slot.addEventListener('dragover',e=>e.preventDefault());
+  slot.addEventListener('drop',e=>{e.preventDefault();tryShape(e.dataTransfer.getData('text/plain'),slot.dataset.slot)});
+  slot.addEventListener('click',()=>{if(selectedPiece)tryShape(selectedPiece,slot.dataset.slot);else{speak('Primeiro escolha uma forma. Depois toque no espaço igual no robô.')}});
+ });
+ setPrompt(shapeLevel===1?'Fase 1! Vamos encaixar o círculo e o quadrado.':shapeLevel===2?'Fase 2! Agora temos mais uma forma: o triângulo!':'Fase 3! Vamos completar o robô com todas as formas!');
+ progress(available.length,completed);
+}
+function tryShape(name,slot){
+ const s=shapes.find(x=>x.name===name);if(!s||s.level>shapeLevel)return;
+ if(!slot)return;
+ if(s.slot!==slot){setFeedback('Quase! Vamos olhar para o formato do espaço.',false);speak(`Vamos tentar de novo. O ${s.name} precisa encontrar um espaço com o mesmo formato.`);return}
+ const piece=document.querySelector(`[data-piece="${name}"]`);if(!piece||piece.disabled)return;
+ piece.disabled=true;piece.setAttribute('aria-disabled','true');piece.innerHTML='✅<span>Encaixou!</span>';piece.style.outline='';selectedPiece=null;
+ const zone=document.querySelector(`[data-slot="${slot}"]`);zone.classList.remove('target');zone.innerHTML=shapeSVG(s,s.color,'#38516b',4).replace('<svg viewBox="0 0 100 100">','').replace('</svg>','');
+ completed++;setFeedback('Muito bem! Você encontrou a forma igual!',true);speak(`Muito bem! O ${s.name} encaixou no espaço igual!`);progress(shapes.filter(x=>x.level<=shapeLevel).length,completed);
+ const total=shapes.filter(x=>x.level<=shapeLevel).length;
+ if(completed===total){setTimeout(()=>{
+   if(shapeLevel<3){setPrompt(`Parabéns! Você passou para a fase ${shapeLevel+1}!`);$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent=`🌟 Ir para a fase ${shapeLevel+1}`;speak(`Parabéns! Você completou a fase ${shapeLevel}! Vamos avançar para a fase ${shapeLevel+1}!`)}
+   else{setPrompt('Você conseguiu! Completou todas as fases e montou o robô!');$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent='🎉 Jogar novamente';speak('Uau! Você completou todas as fases! O robô está prontinho! Vamos comemorar!')}
+ },650)}
+ else {const next=shapes.find(x=>x.level<=shapeLevel&&!document.querySelector(`[data-piece="${x.name}"]`)?.disabled);if(next)setTimeout(()=>{document.querySelectorAll('.dropzone').forEach(z=>z.classList.remove('target'));document.querySelector(`[data-slot="${next.slot}"]`)?.classList.add('target');setPrompt(`Agora procure o ${next.name}.`);},450)}
+}
+function levelHeader(n, label){return `<p style="text-align:center;font-weight:900;font-size:1.05rem">🌟 Fase ${n} de 3 · ${label}</p>`}
+function advanceLevel(gameName, max=3){
+ if(level<max){level++;step=0;completed=0;$('#nextBtn').style.display='none';render();speak(`Parabéns! Você passou para a fase ${level}!`)}
+ else{setPrompt('Você completou todas as fases! Vamos comemorar!');$('#feedback').textContent='🎉 Você conseguiu!';$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent='🎉 Jogar novamente';speak('Você completou todas as fases! Que grande descoberta!')}
+}
+function renderColors(){
+ const all=[{n:'azul',c:'#6dc8ee',e:'🔵'},{n:'amarelo',c:'#ffd15c',e:'🟡'},{n:'rosa',c:'#ff8da1',e:'🩷'},{n:'verde',c:'#8be0c2',e:'🟢'},{n:'roxo',c:'#a99af5',e:'🟣'}];
+ const count=[2,3,5][level-1], opts=all.slice(0,count), target=opts[(step+level-1)%opts.length];
+ $('#gameContent').innerHTML=`${levelHeader(level,['Duas cores','Três cores','Todas as cores'][level-1])}<div class="panel" style="text-align:center"><div style="font-size:5rem">🤖</div><p style="font-size:1.2rem">Toque na cor que o robô pediu!</p><div class="cards">${opts.map(o=>`<button class="activity color-choice" data-color="${o.n}" style="font-size:3.5rem;background:${o.c}">${o.e}<br><span style="font-size:.9rem">🤖</span></button>`).join('')}</div></div>`;
+ setPrompt(`Fase ${level}. Encontre a cor ${target.n}!`);progress(2,step);
+ document.querySelectorAll('.color-choice').forEach(b=>b.onclick=()=>{if(b.dataset.color===target.n){step++;setFeedback('Isso! Você encontrou a cor!',true);speak(`Muito bem! Você encontrou a cor ${target.n}!`);if(step>=2){$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent=level<3?`🌟 Ir para a fase ${level+1}`:'🎉 Jogar novamente';setPrompt(level<3?`Você completou a fase ${level}!`:'Você completou todas as fases das cores!');speak(level<3?`Muito bem! Você completou a fase ${level}. Vamos para a próxima fase!`:'Você encontrou todas as cores! Parabéns!')}else setTimeout(renderColors,850)}else{speak(`Vamos tentar de novo. Procure a cor ${target.n}.`);setFeedback('Vamos tentar outra vez!')}});
+}
+function renderPath(){
+ const sequences={1:['⬆️','➡️'],2:['⬆️','➡️','⬇️'],3:['⬆️','➡️','⬆️']};const targets=sequences[level],target=targets[step%targets.length];const dirs=level===1?['⬆️','➡️']:['⬆️','➡️','⬇️'];
+ $('#gameContent').innerHTML=`${levelHeader(level,['Um comando','Dois comandos','Três comandos'][level-1])}<div class="panel" style="text-align:center"><div style="font-size:4rem">🤖　🌟</div><p>Ajude o robô a chegar até a estrela.</p><div class="cards">${dirs.map(d=>`<button class="big-button dir" data-dir="${d}" style="font-size:2.5rem">${d}<br><span style="font-size:.85rem">${d==='⬆️'?'Para cima':d==='➡️'?'Direita':'Para baixo'}</span></button>`).join('')}</div><div id="pathResult" style="font-size:2rem;margin:15px">🤖　▫️　▫️　⭐</div></div>`;
+ setPrompt(`Fase ${level}. Escolha: ${target==='⬆️'?'para cima':target==='➡️'?'para a direita':'para baixo'}!`);progress(targets.length,step);
+ document.querySelectorAll('.dir').forEach(b=>b.onclick=()=>{if(b.dataset.dir===target){step++;setFeedback('Muito bem! O robô avançou!',true);$('#pathResult').textContent='🤖　➡️　✨　⭐';speak('Muito bem! Você escolheu a direção certa!');if(step>=targets.length){$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent=level<3?`🌟 Ir para a fase ${level+1}`:'🎉 Jogar novamente';setPrompt(level<3?`Você completou o caminho da fase ${level}!`:'Você guiou o robô por todos os caminhos!');speak(level<3?`Parabéns! Vamos para a fase ${level+1}!`:'Você chegou ao destino em todas as fases!')}else setTimeout(renderPath,850)}else{speak('Vamos tentar outra direção! Escute a instrução mais uma vez.');setFeedback('Tente mais uma vez.')}});
+}
+function renderMemory(){
+ const all=['🐱','🐸','🐻','🐰','🦊','🐼'];const pairCount=[2,3,4][level-1],pairs=all.slice(0,pairCount);let arr=[...pairs,...pairs].sort(()=>Math.random()-.5);let first=null,lock=false,found=0;
+ $('#gameContent').innerHTML=`${levelHeader(level,["Dois pares","Três pares","Quatro pares"][level-1])}<div class="panel"><p style="text-align:center">Toque em duas figuras e encontre os pares iguais.</p><div class="cards">${arr.map((v,i)=>`<button class="activity mem" data-i="${i}" data-v="${v}" style="font-size:3rem">❔</button>`).join('')}</div></div>`;
+ setPrompt(`Fase ${level}. Vamos encontrar ${pairCount} pares de figuras iguais!`);progress(pairCount,0);
+ document.querySelectorAll('.mem').forEach(b=>b.onclick=()=>{if(lock||b.textContent!=='❔')return;b.textContent=b.dataset.v;beep(520,.1);if(!first){first=b;return}if(first.dataset.v===b.dataset.v){found++;setFeedback('Encontrou um par! Muito bem!',true);first.disabled=b.disabled=true;first=null;progress(pairCount,found);if(found===pairCount){speak('Você encontrou todos os pares! Parabéns!');$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent=level<3?`🌟 Ir para a fase ${level+1}`:'🎉 Jogar novamente';setPrompt(level<3?`Muito bem! Você completou a fase ${level}!`:'Você encontrou todos os pares de todas as fases!')} }else{lock=true;speak('Essas figuras são diferentes. Vamos tentar de novo!');setTimeout(()=>{first.textContent='❔';b.textContent='❔';first=null;lock=false},900)}});
+}
+function renderSounds(){
+ const all=[{n:'gato',e:'🐱',s:'Miau, miau!'},{n:'cachorro',e:'🐶',s:'Au, au!'},{n:'sapo',e:'🐸',s:'Coax, coax!'},{n:'vaca',e:'🐮',s:'Muuu!'},{n:'pato',e:'🦆',s:'Quá, quá!'}];const count=[2,3,5][level-1],opts=all.slice(0,count),t=opts[(step+level-1)%opts.length];
+ $('#gameContent').innerHTML=`${levelHeader(level,['Dois animais','Três animais','Todos os sons'][level-1])}<div class="panel" style="text-align:center"><div style="font-size:4rem">👂</div><p>Ouça o som e escolha o animal!</p><button class="big-button" id="playSound">🔊 Ouvir som</button><div class="cards">${opts.map(o=>`<button class="activity sound-choice" data-n="${o.n}" style="font-size:3.5rem">${o.e}</button>`).join('')}</div></div>`;
+ setPrompt(`Fase ${level}. Escute e descubra qual animal faz o som!`);$('#playSound').onclick=()=>speak(t.s);setTimeout(()=>{if(soundOn)speak(t.s)},350);
+ document.querySelectorAll('.sound-choice').forEach(b=>b.onclick=()=>{if(b.dataset.n===t.n){step++;setFeedback(`Isso! É o ${t.n}!`,true);speak(`Muito bem! É o ${t.n}!`);if(step>=2){$('#nextBtn').style.display='inline-block';$('#nextBtn').textContent=level<3?`🌟 Ir para a fase ${level+1}`:'🎉 Jogar novamente';setPrompt(level<3?`Você completou a fase ${level}!`:'Você descobriu todos os sons!');speak(level<3?`Parabéns! Vamos para a fase ${level+1}!`:'Você descobriu todos os sons! Que ótimo!')}else setTimeout(renderSounds,900)}else{speak('Vamos ouvir de novo e tentar outra vez.');setFeedback('Escute mais uma vez!')}});
+}
+function renderCreate(){
+ const colors=['#6dc8ee','#ffd15c','#ff8da1','#a99af5','#8be0c2','#ffb36b'];
+ const bodyOptions=[{id:'round',label:'Redondo',icon:'🔵'},{id:'square',label:'Quadrado',icon:'🟦'},{id:'triangle',label:'Triangular',icon:'🔺'},{id:'oval',label:'Oval',icon:'🥚'},{id:'star',label:'Estrela',icon:'⭐'},{id:'hex',label:'Hexágono',icon:'⬡'}];
+ const accessories=['🎩','👑','🎀','🕶️','🌸','⭐','❤️','🦋','🚀','🎧','🪄','🛡️'];
+ const bodyShape=robotDesign.bodyShape||'square';const bodyCss=bodyShape==='round'?'border-radius:50%':bodyShape==='triangle'?'clip-path:polygon(50% 0%,0% 100%,100% 100%)':bodyShape==='oval'?'border-radius:50%':bodyShape==='star'?'clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 94%,50% 72%,21% 94%,32% 57%,2% 35%,39% 35%)':bodyShape==='hex'?'clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)':'border-radius:18px';
+ const stageLabel=['Escolha o corpo','Escolha a cor','Adicione acessórios'][createPhase-1];
+ let options='';
+ if(createPhase===1) options=bodyOptions.map(o=>`<button class="big-button body-choice" data-body="${o.id}" style="background:#fff">${o.icon}<br><span style="font-size:.8rem">${o.label}</span></button>`).join('');
+ if(createPhase===2) options=colors.map(c=>`<button class="big-button paint" data-c="${c}" aria-label="Escolher cor" style="background:${c};min-width:64px">🎨</button>`).join('');
+ if(createPhase===3) options=accessories.map(e=>`<button class="big-button acc" data-e="${e}" style="font-size:1.8rem">${e}</button>`).join('');
+ $('#gameContent').innerHTML=`${levelHeader(createPhase,['Construa o corpo','Escolha as cores','Personalize'][createPhase-1])}<div class="game-grid"><div class="scene"><div id="customRobot" style="text-align:center;z-index:2"><div id="robotAccessory" style="font-size:3rem;min-height:48px">${robotDesign.accessories||''}</div><div style="width:190px;height:170px;margin:auto;background:${robotDesign.color};border:5px solid #397a9c;${bodyCss};display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:3.4rem;box-shadow:inset 0 0 0 5px #ffffff50"><span>${robotDesign.eyes||'👀'}</span><span style="font-size:2.3rem">${robotDesign.mouth||'😊'}</span></div><div style="font-size:2.7rem">🦿　🦿</div><div style="font-weight:900">Seu robô</div></div></div><div class="panel"><h3>${stageLabel}</h3><p>Escolha tocando em uma opção. O robô vai mudar!</p><div class="cards" style="grid-template-columns:repeat(3,minmax(60px,1fr))">${options}</div><div style="text-align:center;margin-top:12px"><button class="secondary" id="nextCreate" ${createPhase===3?'':'style="display:none"'}>✨ Finalizar meu robô</button></div></div></div>`;
+ setPrompt(createPhase===1?'Fase 1. Escolha o formato do corpo do seu robô!':createPhase===2?'Fase 2. Escolha uma cor para o corpo!':'Fase 3. Escolha acessórios para deixar seu robô especial!');
+ document.querySelectorAll('.body-choice').forEach(b=>b.onclick=()=>{robotDesign.bodyShape=b.dataset.body;robotDesign.body=b.textContent.trim();renderCreate();speak(`Você escolheu o corpo ${b.querySelector('span').textContent}. Muito legal!`);$('#nextCreate').style.display='inline-block'});
+ document.querySelectorAll('.paint').forEach(b=>b.onclick=()=>{robotDesign.color=b.dataset.c;renderCreate();speak('Que cor bonita!');$('#nextCreate').style.display='inline-block'});
+ document.querySelectorAll('.acc').forEach(b=>b.onclick=()=>{robotDesign.accessories=(robotDesign.accessories||'')+b.dataset.e;renderCreate();speak('Acessório adicionado! Você pode escolher mais!');$('#nextCreate').style.display='inline-block'});
+ const nc=$('#nextCreate');if(nc)nc.onclick=()=>{if(createPhase<3){createPhase++;renderCreate();speak(createPhase===2?'Agora escolha uma cor para o corpo!':'Agora escolha acessórios para seu robô!')}else{setPrompt('Seu robô ficou incrível! Vamos comemorar!');$('#feedback').textContent='🤖✨ Robô criado!';nc.textContent='🔄 Criar outro robô';nc.onclick=()=>start('create');speak('Seu robô ficou incrível! Você é um grande inventor!');cheer()}};
+}
+function render(){
+ $('#feedback').textContent='';$('#nextBtn').style.display='none';
+ if(currentGame==='shapes')renderShapes();else if(currentGame==='colors')renderColors();else if(currentGame==='path')renderPath();else if(currentGame==='memory')renderMemory();else if(currentGame==='sounds')renderSounds();else if(currentGame==='create')renderCreate();
+}
+$('#startBtn').onclick=()=>{speak('Olá, pequenos exploradores! Vamos brincar com os robôs e fazer grandes descobertas! Escolha uma atividade.');show('home');};
+document.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>start(b.dataset.game));
+$('#homeBtn').onclick=()=>{show('home');if('speechSynthesis'in window)speechSynthesis.cancel()};
+$('#repeatBtn').onclick=sayAgain;
+$('#soundBtn').onclick=()=>{soundOn=!soundOn;$('#soundBtn').textContent=soundOn?'🔊 Som ligado':'🔇 Som desligado';if(!soundOn&&'speechSynthesis'in window)speechSynthesis.cancel();else speak('Som ativado! Vamos brincar!')};
+$('#fullBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
+$('#nextBtn').onclick=()=>{if(currentGame==='shapes'){if(shapeLevel<3 && completed===shapes.filter(x=>x.level<=shapeLevel).length){shapeLevel++;completed=0;selectedPiece=null;render()}else start('shapes')}else if(currentGame==='create'){start('create')}else if(level<3){advanceLevel(currentGame)}else{start(currentGame)}};
+$('#teacherBack').onclick=()=>show('home');
+if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>{};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monte o Robô com Formas Geométricas - Fases Progressivas - EBAS</title>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #a5f3fc 0%, #c084fc 50%, #fef08a 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        .bounce-in {
+            animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .robot-dance {
+            animation: robotDance 1s infinite alternate ease-in-out;
+        }
+
+        @keyframes robotDance {
+            0% { transform: rotate(-5deg) translateY(0); }
+            100% { transform: rotate(5deg) translateY(-15px); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.6)); }
+            100% { filter: drop-shadow(0 0 22px rgba(250, 204, 21, 0.9)); }
+        }
+
+        .pulse-slot {
+            animation: pulseSlot 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseSlot {
+            0% { transform: scale(0.96); opacity: 0.7; }
+            100% { transform: scale(1.06); opacity: 1; }
+        }
+
+        .shake-soft {
+            animation: shakeSoft 0.4s ease-in-out;
+        }
+
+        @keyframes shakeSoft {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root" class="w-screen h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- SISTEMA DE ÁUDIO WEB (VOZ & EFEITOS SYNTH) ---
+        const AudioSystem = {
+            synth: window.speechSynthesis,
+            audioCtx: null,
+
+            initCtx() {
+                if (!this.audioCtx) {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            },
+
+            speak(text, onEnd) {
+                if (!this.synth) return;
+                this.synth.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pt-BR';
+                utterance.rate = 0.85; // Fala pausada e clara para Educação Infantil
+                utterance.pitch = 1.25; // Tom acolhedor e alegre
+
+                const voices = this.synth.getVoices();
+                const ptVoice = voices.find(v => v.lang.includes('pt') || v.lang.includes('PT'));
+                if (ptVoice) utterance.voice = ptVoice;
+
+                if (onEnd) utterance.onend = onEnd;
+
+                this.synth.speak(utterance);
+            },
+
+            stopSpeech() {
+                if (this.synth) this.synth.cancel();
+            },
+
+            playBeep(freq = 440, type = 'sine', duration = 0.2) {
+                try {
+                    this.initCtx();
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + duration);
+                } catch (e) {
+                    console.log('Audio Context error:', e);
+                }
+            },
+
+            playSnapSound() {
+                this.playBeep(523.25, 'triangle', 0.1); // C5
+                setTimeout(() => this.playBeep(659.25, 'triangle', 0.12), 80); // E5
+                setTimeout(() => this.playBeep(783.99, 'triangle', 0.22), 160); // G5
+            },
+
+            playLevelUpSound() {
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    setTimeout(() => this.playBeep(freq, 'sine', 0.25), i * 110);
+                });
+            }
+        };
+
+        // --- DEFINIÇÃO COMPLETA DAS 8 FORMAS GEOMÉTRICAS ---
+        const ALL_SHAPES_DATA = [
+            { id: 'head', name: 'Quadrado', form: 'square', color: '#3b82f6', colorName: 'Azul', label: 'Tronco', svgType: 'square' },
+            { id: 'eyeL', name: 'Círculo', form: 'circle', color: '#ef4444', colorName: 'Vermelho', label: 'Cabeça', svgType: 'circle' },
+            { id: 'hat', name: 'Triângulo', form: 'triangle', color: '#f59e0b', colorName: 'Amarelo', label: 'Chapéu', svgType: 'triangle' },
+            { id: 'legL', name: 'Retângulo', form: 'rectangle', color: '#10b981', colorName: 'Verde', label: 'Perna Esquerda', svgType: 'rectangle' },
+            { id: 'legR', name: 'Retângulo', form: 'rectangle', color: '#06b6d4', colorName: 'Ciano', label: 'Perna Direita', svgType: 'rectangle' },
+            { id: 'earL', name: 'Triângulo Pequeno', form: 'triangle', color: '#a855f7', colorName: 'Roxo', label: 'Orelha', svgType: 'triangle' },
+            { id: 'rhombusBadge', name: 'Losango', form: 'rhombus', color: '#ec4899', colorName: 'Rosa', label: 'Emblema', svgType: 'rhombus' },
+            { id: 'starCore', name: 'Estrela', form: 'star', color: '#facc15', colorName: 'Dourado', label: 'Coração', svgType: 'star' }
+        ];
+
+        // --- CONFIGURAÇÃO DE FASES PROGRESSIVAS ---
+        const LEVELS_CONFIG = [
+            {
+                level: 1,
+                title: "Fase 1 — Os Primeiros Passos",
+                description: "2 peças gigantes e indicação bem visível",
+                promptMessage: "Uau, bem-vindo à Fase 1! Vamos começar colocando a cabeça redonda e o corpo quadrado do robô?",
+                victoryMessage: "Demais! Você concluiu a Fase 1! Vamos para a Fase 2?",
+                shapes: ['eyeL', 'head'],
+                highlightPulse: true
+            },
+            {
+                level: 2,
+                title: "Fase 2 — Robô Amigo",
+                description: "4 peças simples com cores vivas",
+                promptMessage: "Você é incrível! Bem-vindo à Fase 2! Agora vamos colocar o chapéu de triângulo e uma perna de retângulo!",
+                victoryMessage: "Sensacional! O Robô Amigo está pronto! Hora da Fase 3!",
+                shapes: ['eyeL', 'head', 'hat', 'legL'],
+                highlightPulse: false
+            },
+            {
+                level: 3,
+                title: "Fase 3 — Robô Detetive",
+                description: "6 peças para prestar bastante atenção",
+                promptMessage: "Nossa, você é um verdadeiro detetive! Fase 3 desbloqueada! Olhe com atenção para encontrar todas as partes!",
+                victoryMessage: "Parabéns, detetive! Você montou a Fase 3 com perfeição! Pronto para a Fase 4?",
+                shapes: ['eyeL', 'head', 'hat', 'legL', 'legR', 'earL'],
+                highlightPulse: false
+            },
+            {
+                level: 4,
+                title: "Fase 4 — Robô Artista",
+                description: "7 peças com diferenciação de cores e formas",
+                promptMessage: "Fase 4: O Robô Artista! Vamos associar cada forma colorida ao seu lugar certo?",
+                victoryMessage: "Que obra-prima! O Robô Artista ficou lindo! Chegamos na Fase Final!",
+                shapes: ['eyeL', 'head', 'hat', 'legL', 'legR', 'earL', 'rhombusBadge'],
+                highlightPulse: false
+            },
+            {
+                level: 5,
+                title: "Fase 5 — Mestre Construtor",
+                description: "Robô completo com 8 peças geométricas",
+                promptMessage: "Chegamos à Fase 5! O Mestre Construtor! Vamos encaixar o coração de estrela e completar o grande robô!",
+                victoryMessage: "INCRÍVEL! Você é o grande Mestre Construtor da EBAS! Completou todas as fases!",
+                shapes: ['eyeL', 'head', 'hat', 'legL', 'legR', 'earL', 'rhombusBadge', 'starCore'],
+                highlightPulse: false
+            }
+        ];
+
+        // --- COMPONENTE DE DESENHO DE FORMAS SVG ---
+        const ShapeSVG = ({ type, color, className = "w-full h-full" }) => {
+            switch (type) {
+                case 'circle':
+                    return (
+                        <svg className={className} viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill={color} stroke="#ffffff" strokeWidth="6"/>
+                        </svg>
+                    );
+                case 'square':
+                    return (
+                        <svg className={className} viewBox="0 0 100 100">
+                            <rect x="10" y="10" width="80" height="80" rx="14" fill={color} stroke="#ffffff" strokeWidth="6"/>
+                        </svg>
+                    );
+                case 'triangle':
+                    return (
+                        <svg className={className} viewBox="0 0 100 100">
+                            <polygon points="50,10 90,85 10,85" fill={color} stroke="#ffffff" strokeWidth="6" strokeLinejoin="round"/>
+                        </svg>
+                    );
+                case 'rectangle':
+                    return (
+                        <svg className={className} viewBox="0 0 120 70">
+                            <rect x="8" y="8" width="104" height="54" rx="10" fill={color} stroke="#ffffff" strokeWidth="6"/>
+                        </svg>
+                    );
+                case 'rhombus':
+                    return (
+                        <svg className={className} viewBox="0 0 100 100">
+                            <polygon points="50,10 88,50 50,90 12,50" fill={color} stroke="#ffffff" strokeWidth="6" strokeLinejoin="round"/>
+                        </svg>
+                    );
+                case 'star':
+                    return (
+                        <svg className={className} viewBox="0 0 100 100">
+                            <polygon points="50,8 63,35 93,38 71,58 78,87 50,71 22,87 29,58 7,38 37,35" fill={color} stroke="#ffffff" strokeWidth="5" strokeLinejoin="round"/>
+                        </svg>
+                    );
+                default:
+                    return null;
+            }
+        };
+
+        // --- COMPONENTE PRINCIPAL DO JOGO ---
+        const App = () => {
+            const [screen, setScreen] = useState('home'); // 'home', 'game', 'teacher'
+            const [currentLevelIdx, setCurrentLevelIdx] = useState(0); // 0 a 4 (Fase 1 a 5)
+            const [isFreePlay, setIsFreePlay] = useState(false);
+            const [placedParts, setPlacedParts] = useState({});
+            const [selectedPiece, setSelectedPiece] = useState(null);
+            const [currentPromptShape, setCurrentPromptShape] = useState(null);
+            const [isCompleted, setIsCompleted] = useState(false);
+            const [shakePiece, setShakePiece] = useState(null);
+
+            const activeLevelConfig = LEVELS_CONFIG[currentLevelIdx];
+            const activeShapes = ALL_SHAPES_DATA.filter(s => activeLevelConfig.shapes.includes(s.id));
+
+            // Fala inicial da tela de abertura
+            useEffect(() => {
+                if (screen === 'home') {
+                    AudioSystem.speak(
+                        "Olá, pequenos exploradores da EBAS! Vamos brincar de passar de fase montando o nosso robô?"
+                    );
+                }
+            }, [screen]);
+
+            // Iniciar Jogo em uma Fase Específica
+            const startLevel = (levelIdx, free = false) => {
+                setIsFreePlay(free);
+                setCurrentLevelIdx(levelIdx);
+                setPlacedParts({});
+                setSelectedPiece(null);
+                setIsCompleted(false);
+                setScreen('game');
+
+                const levelData = LEVELS_CONFIG[levelIdx];
+                const shapesToUse = ALL_SHAPES_DATA.filter(s => levelData.shapes.includes(s.id));
+                const firstNeeded = shapesToUse[0];
+                setCurrentPromptShape(firstNeeded);
+
+                setTimeout(() => {
+                    AudioSystem.speak(
+                        `${levelData.promptMessage} Encontre o ${firstNeeded.name} de cor ${firstNeeded.colorName}!`
+                    );
+                }, 400);
+            };
+
+            // Repetir orientação audível
+            const repeatInstruction = () => {
+                if (isCompleted) {
+                    AudioSystem.speak(activeLevelConfig.victoryMessage);
+                    return;
+                }
+                if (currentPromptShape) {
+                    AudioSystem.speak(`Procure o ${currentPromptShape.name} de cor ${currentPromptShape.colorName} e toque nele!`);
+                } else {
+                    AudioSystem.speak("Toque em uma forma nas opções aqui embaixo para encaixar no robô!");
+                }
+            };
+
+            // Tentar encaixar/selecionar peça
+            const handlePieceClick = (shape) => {
+                AudioSystem.playBeep(440, 'sine', 0.1);
+                if (placedParts[shape.id]) return;
+
+                setSelectedPiece(shape);
+
+                if (!currentPromptShape || shape.id === currentPromptShape.id) {
+                    fitPiece(shape);
+                } else {
+                    setShakePiece(shape.id);
+                    AudioSystem.speak(`Essa peça é um ${shape.name}. Vamos procurar o ${currentPromptShape.name}? Olhe bem!`);
+                    setTimeout(() => setShakePiece(null), 600);
+                }
+            };
+
+            // Encaixe correto
+            const fitPiece = (shape) => {
+                AudioSystem.playSnapSound();
+                const updated = { ...placedParts, [shape.id]: true };
+                setPlacedParts(updated);
+                setSelectedPiece(null);
+
+                const remaining = activeShapes.filter(s => !updated[s.id]);
+
+                if (remaining.length === 0) {
+                    // FASE CONCLUÍDA!
+                    setIsCompleted(true);
+                    AudioSystem.playLevelUpSound();
+
+                    if (window.confetti) {
+                        window.confetti({ particleCount: 140, spread: 90, origin: { y: 0.55 } });
+                    }
+
+                    setTimeout(() => {
+                        AudioSystem.speak(activeLevelConfig.victoryMessage);
+                    }, 400);
+                } else {
+                    const nextShape = remaining[0];
+                    setCurrentPromptShape(nextShape);
+                    AudioSystem.speak(`Muito bem! O ${shape.name} encaixou! Agora procure o ${nextShape.name}!`);
+                }
+            };
+
+            // Clique no slot do corpo do robô
+            const handleSlotClick = (shape) => {
+                if (placedParts[shape.id]) return;
+
+                if (selectedPiece && selectedPiece.id === shape.id) {
+                    fitPiece(shape);
+                } else {
+                    setCurrentPromptShape(shape);
+                    AudioSystem.speak(`Este é o lugar do ${shape.name} ${shape.colorName}. Procure ele lá embaixo!`);
+                }
+            };
+
+            // Drag and Drop
+            const handleDragStart = (e, shape) => {
+                e.dataTransfer.setData('shapeId', shape.id);
+                setSelectedPiece(shape);
+            };
+
+            const handleDrop = (e, targetShape) => {
+                e.preventDefault();
+                const draggedId = e.dataTransfer.getData('shapeId');
+                if (draggedId === targetShape.id) {
+                    const shape = activeShapes.find(s => s.id === draggedId);
+                    if (shape) fitPiece(shape);
+                } else {
+                    setShakePiece(draggedId);
+                    AudioSystem.speak("Vamos tentar de novo! Olhe bem para o contorno da peça!");
+                    setTimeout(() => setShakePiece(null), 600);
+                }
+            };
+
+            // Avançar para a próxima fase
+            const goToNextLevel = () => {
+                if (currentLevelIdx < LEVELS_CONFIG.length - 1) {
+                    startLevel(currentLevelIdx + 1, false);
+                } else {
+                    // Modo Livre / Reiniciar do 1
+                    startLevel(0, false);
+                }
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col justify-between relative overflow-hidden select-none">
+                    
+                    {/* BOTÃO FLUTUANTE DE VOZ (ALTO-FALANTE GIGANTE) */}
+                    <button 
+                        onClick={repeatInstruction}
+                        className="fixed top-4 right-4 z-50 bg-amber-400 hover:bg-amber-300 active:scale-90 w-20 h-20 md:w-24 md:h-24 rounded-full shadow-2xl border-4 border-white flex items-center justify-center text-white text-4xl md:text-5xl transition-transform pulse-glow"
+                        title="Ouvir instrução novamente"
+                    >
+                        <i className="fas fa-volume-up"></i>
+                    </button>
+
+                    {/* TELA INICIAL */}
+                    {screen === 'home' && (
+                        <div className="flex flex-col items-center justify-center h-full p-4 md:p-6 text-center bounce-in overflow-y-auto">
+                            <div className="bg-white/85 backdrop-blur-md p-6 md:p-10 rounded-[3.5rem] shadow-2xl border-8 border-white max-w-4xl w-full flex flex-col items-center my-auto">
+                                
+                                <div className="text-7xl md:text-8xl mb-2 animate-bounce">🤖🔺🔵⭐</div>
+                                
+                                <h1 className="title-font text-2xl md:text-5xl text-indigo-950 leading-tight mb-1">
+                                    MONTE O ROBÔ COM FORMAS GEOMÉTRICAS
+                                </h1>
+                                
+                                <p className="text-lg md:text-2xl font-black text-purple-700 mb-4">
+                                    Projeto Pequenos Robôs, Grandes Descobertas
+                                </p>
+
+                                <div className="bg-indigo-100 text-indigo-900 font-bold px-6 py-2 rounded-full text-sm md:text-lg mb-6">
+                                    Escola de Educação Infantil Prof.ª Edite Bozano Alves de Souza (EBAS)
+                                </div>
+
+                                {/* SELEÇÃO DE FASES PROGRESSIVAS */}
+                                <div className="w-full max-w-3xl mb-6">
+                                    <h2 className="title-font text-xl md:text-2xl text-gray-800 mb-3">Escolha por onde quer começar:</h2>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                        {LEVELS_CONFIG.map((lvl, idx) => (
+                                            <button
+                                                key={lvl.level}
+                                                onClick={() => startLevel(idx, false)}
+                                                className="bg-gradient-to-b from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white p-3 md:p-4 rounded-3xl shadow-lg border-2 border-white flex flex-col items-center transition-all active:scale-95"
+                                            >
+                                                <span className="text-3xl md:text-4xl mb-1">🤖</span>
+                                                <span className="title-font text-lg md:text-xl">Fase {lvl.level}</span>
+                                                <span className="text-xs opacity-90">{lvl.shapes.length} Peças</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+                                    <button 
+                                        onClick={() => startLevel(0, false)}
+                                        className="flex-1 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white p-5 rounded-3xl shadow-xl border-4 border-white flex items-center justify-center gap-3 title-font text-2xl md:text-3xl transition-all"
+                                    >
+                                        <i className="fas fa-play text-4xl"></i> COMEÇAR FASE 1
+                                    </button>
+
+                                    <button 
+                                        onClick={() => setScreen('teacher')}
+                                        className="bg-purple-100 hover:bg-purple-200 text-purple-900 font-black px-6 py-4 rounded-3xl border-2 border-purple-300 flex items-center justify-center gap-2 text-lg"
+                                    >
+                                        <i className="fas fa-chalkboard-teacher text-2xl"></i> Dicas para Professores
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TELA DE ORIENTAÇÕES PEDAGÓGICAS */}
+                    {screen === 'teacher' && (
+                        <div className="flex flex-col h-full p-6 bg-white/95 backdrop-blur-lg overflow-y-auto hide-scrollbar">
+                            <div className="max-w-4xl mx-auto w-full">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="title-font text-3xl md:text-5xl text-indigo-900">Orientações Pedagógicas & Progressão (EBAS)</h2>
+                                    <button 
+                                        onClick={() => setScreen('home')}
+                                        className="bg-pink-500 text-white font-black text-xl px-6 py-3 rounded-full shadow-lg active:scale-90"
+                                    >
+                                        <i className="fas fa-arrow-left"></i> Voltar
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4 text-gray-800 text-base md:text-lg leading-relaxed">
+                                    <div className="bg-sky-50 p-5 rounded-3xl border-2 border-sky-200">
+                                        <h3 className="title-font text-xl text-sky-900 mb-1">📈 A Progressão Pedagógica de Fases</h3>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            <li><b>Fase 1:</b> Foco em causa e efeito com apenas 2 peças gigantes (Cabeça e Tronco) com contorno piscante.</li>
+                                            <li><b>Fase 2:</b> Introdução de chapéu triangular e perna retangular para diferenciação básica.</li>
+                                            <li><b>Fase 3 & 4:</b> Ampliação do campo visual com até 7 peças de cores e tamanhos variados.</li>
+                                            <li><b>Fase 5:</b> Robô completo (8 peças) integrando losango e estrela decorativa.</li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-amber-50 p-5 rounded-3xl border-2 border-amber-200">
+                                        <h3 className="title-font text-xl text-amber-900 mb-1">🖥️ Dinâmica na Lousa Digital</h3>
+                                        <p>Faça rodízios entre as crianças para que cada uma monte uma peça de uma fase. A turma pode gritar coletivamente a cor da forma solicitada pelo robô.</p>
+                                    </div>
+
+                                    <div className="bg-emerald-50 p-5 rounded-3xl border-2 border-emerald-200">
+                                        <h3 className="title-font text-xl text-emerald-900 mb-1">📦 Atividades Concretas em Sala</h3>
+                                        <p>Após jogarem a Fase 5, proponha a construção de robôs tridimensionais usando blocos de madeira ou caixas revestidas de papel colorido respeitando as formas trabalhadas no jogo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TELA DO JOGO INTERATIVO */}
+                    {screen === 'game' && (
+                        <div className="flex flex-col h-full justify-between p-3 md:p-5 relative">
+                            
+                            {/* BARRA SUPERIOR COM INDICADOR DE FASES */}
+                            <div className="flex items-center justify-between z-10 bg-white/70 backdrop-blur-md p-2 md:p-3 px-4 md:px-6 rounded-full shadow-md max-w-5xl mx-auto w-full gap-2">
+                                <button 
+                                    onClick={() => { AudioSystem.stopSpeech(); setScreen('home'); }}
+                                    className="bg-pink-500 hover:bg-pink-400 text-white font-black px-4 py-2 rounded-full text-base md:text-xl shadow-md active:scale-90 flex items-center gap-1"
+                                >
+                                    <i className="fas fa-home"></i> Início
+                                </button>
+
+                                {/* MEDALHAS DAS FASES */}
+                                <div className="flex items-center gap-1 md:gap-3 bg-white/90 px-3 md:px-5 py-1 rounded-full shadow-inner border border-purple-200">
+                                    <span className="title-font text-xs md:text-lg text-purple-900 mr-1 hidden sm:inline">Progresso:</span>
+                                    {LEVELS_CONFIG.map((lvl, idx) => (
+                                        <div 
+                                            key={lvl.level}
+                                            onClick={() => startLevel(idx, false)}
+                                            className={`cursor-pointer px-2 py-1 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-1
+                                                ${idx === currentLevelIdx ? 'bg-amber-400 text-white scale-110 shadow-md' : 'bg-gray-200 text-gray-600'}
+                                            `}
+                                            title={lvl.title}
+                                        >
+                                            🤖 F{lvl.level}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button 
+                                    onClick={() => startLevel(currentLevelIdx, isFreePlay)}
+                                    className="bg-sky-500 hover:bg-sky-400 text-white font-black px-4 py-2 rounded-full text-base md:text-xl shadow-md active:scale-90 flex items-center gap-1"
+                                >
+                                    <i className="fas fa-redo"></i> Reiniciar
+                                </button>
+                            </div>
+
+                            {/* TÍTULO DA FASE ATUAL */}
+                            <div className="text-center my-1 z-10">
+                                <span className="title-font text-lg md:text-2xl text-indigo-950 bg-white/60 px-6 py-1 rounded-full border border-white shadow-sm">
+                                    {activeLevelConfig.title}
+                                </span>
+                            </div>
+
+                            {/* ÁREA CENTRAL DO ROBÔ (SLOTS DE ENCAIXE) */}
+                            <div className="flex-1 flex items-center justify-center relative my-1">
+                                <div className={`relative w-[320px] h-[360px] md:w-[460px] md:h-[480px] bg-white/40 rounded-[3.5rem] p-3 border-4 border-white/80 shadow-2xl flex flex-col items-center justify-center transition-all ${isCompleted ? 'robot-dance bg-yellow-200/70 border-yellow-400' : ''}`}>
+                                    
+                                    {/* ORELHA / ANTENA (FASE 3+) */}
+                                    {activeShapes.some(s => s.id === 'earL') && (
+                                        <div 
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='earL'))}
+                                            onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='earL'))}
+                                            className="absolute -top-8 -left-2 w-16 h-16 md:w-24 md:h-24 flex items-center justify-center cursor-pointer"
+                                        >
+                                            {placedParts['earL'] ? (
+                                                <ShapeSVG type="triangle" color="#a855f7" className="w-full h-full drop-shadow-md bounce-in" />
+                                            ) : (
+                                                <div className="w-full h-full border-4 border-dashed border-purple-500/60 rounded-2xl flex items-center justify-center bg-purple-100/30">
+                                                    <span className="text-purple-700/50 font-black text-sm">🔺</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* CHAPÉU (FASE 2+) */}
+                                    {activeShapes.some(s => s.id === 'hat') && (
+                                        <div 
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='hat'))}
+                                            onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='hat'))}
+                                            className="absolute -top-10 md:-top-14 w-24 h-24 md:w-32 md:h-32 flex items-center justify-center cursor-pointer"
+                                        >
+                                            {placedParts['hat'] ? (
+                                                <ShapeSVG type="triangle" color="#f59e0b" className="w-full h-full drop-shadow-md bounce-in" />
+                                            ) : (
+                                                <div className="w-full h-full border-4 border-dashed border-amber-500/60 rounded-2xl flex items-center justify-center bg-amber-100/30">
+                                                    <span className="text-amber-700/50 font-black text-lg">🔺</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* CABEÇA (CÍRCULO) */}
+                                    <div 
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='eyeL'))}
+                                        onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='eyeL'))}
+                                        className={`w-28 h-28 md:w-36 md:h-36 relative flex items-center justify-center cursor-pointer my-1 ${activeLevelConfig.highlightPulse && !placedParts['eyeL'] ? 'pulse-slot' : ''}`}
+                                    >
+                                        {placedParts['eyeL'] ? (
+                                            <div className="w-full h-full relative bounce-in">
+                                                <ShapeSVG type="circle" color="#ef4444" className="w-full h-full drop-shadow-md" />
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                    <div className="flex gap-3 mb-1">
+                                                        <div className="w-4 h-4 md:w-5 md:h-5 bg-white rounded-full flex items-center justify-center">
+                                                            <div className="w-2 h-2 bg-black rounded-full"></div>
+                                                        </div>
+                                                        <div className="w-4 h-4 md:w-5 md:h-5 bg-white rounded-full flex items-center justify-center">
+                                                            <div className="w-2 h-2 bg-black rounded-full"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-8 h-3 md:w-10 md:h-3 border-b-4 border-white rounded-full"></div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-full border-4 border-dashed border-red-500/60 rounded-full flex items-center justify-center bg-red-100/30">
+                                                <span className="text-red-700/50 font-black text-2xl">🔴</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* TRONCO / CORPO (QUADRADO) */}
+                                    <div 
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='head'))}
+                                        onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='head'))}
+                                        className={`w-32 h-32 md:w-44 md:h-44 relative flex items-center justify-center cursor-pointer my-1 ${activeLevelConfig.highlightPulse && !placedParts['head'] ? 'pulse-slot' : ''}`}
+                                    >
+                                        {placedParts['head'] ? (
+                                            <div className="w-full h-full relative bounce-in">
+                                                <ShapeSVG type="square" color="#3b82f6" className="w-full h-full drop-shadow-md" />
+                                                
+                                                {/* ELEMENTOS DECORATIVOS INTERNOS NO TRONCO */}
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                                    {placedParts['rhombusBadge'] && (
+                                                        <div className="w-10 h-10 md:w-12 md:h-12 bounce-in">
+                                                            <ShapeSVG type="rhombus" color="#ec4899" />
+                                                        </div>
+                                                    )}
+                                                    {placedParts['starCore'] && (
+                                                        <div className="w-10 h-10 md:w-12 md:h-12 bounce-in">
+                                                            <ShapeSVG type="star" color="#facc15" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-full border-4 border-dashed border-blue-500/60 rounded-3xl flex items-center justify-center bg-blue-100/30">
+                                                <span className="text-blue-700/50 font-black text-3xl">🟦</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* PERNAS (RETÂNGULOS) */}
+                                    <div className="flex gap-3 mt-1">
+                                        {activeShapes.some(s => s.id === 'legL') && (
+                                            <div 
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='legL'))}
+                                                onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='legL'))}
+                                                className="w-20 h-10 md:w-28 md:h-12 flex items-center justify-center cursor-pointer"
+                                            >
+                                                {placedParts['legL'] ? (
+                                                    <ShapeSVG type="rectangle" color="#10b981" className="w-full h-full drop-shadow-md bounce-in" />
+                                                ) : (
+                                                    <div className="w-full h-full border-4 border-dashed border-emerald-500/60 rounded-xl flex items-center justify-center bg-emerald-100/30">
+                                                        <span className="text-emerald-700/50 font-black text-base">▰</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {activeShapes.some(s => s.id === 'legR') && (
+                                            <div 
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => handleDrop(e, ALL_SHAPES_DATA.find(s=>s.id==='legR'))}
+                                                onClick={() => handleSlotClick(ALL_SHAPES_DATA.find(s=>s.id==='legR'))}
+                                                className="w-20 h-10 md:w-28 md:h-12 flex items-center justify-center cursor-pointer"
+                                            >
+                                                {placedParts['legR'] ? (
+                                                    <ShapeSVG type="rectangle" color="#06b6d4" className="w-full h-full drop-shadow-md bounce-in" />
+                                                ) : (
+                                                    <div className="w-full h-full border-4 border-dashed border-cyan-500/60 rounded-xl flex items-center justify-center bg-cyan-100/30">
+                                                        <span className="text-cyan-700/50 font-black text-base">▰</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* BANCO DE PEÇAS DA FASE ATUAL */}
+                            <div className="bg-white/80 backdrop-blur-lg p-3 md:p-5 rounded-[2.5rem] shadow-2xl border-4 border-white max-w-5xl mx-auto w-full z-10">
+                                <p className="title-font text-center text-indigo-900 text-base md:text-xl mb-2">
+                                    {isCompleted ? "🎉 FASE COMPLETA! PARABÉNS!" : "Toque ou arraste a forma para o robô:"}
+                                </p>
+
+                                <div className="flex items-center justify-center gap-3 md:gap-6 flex-wrap">
+                                    {activeShapes.map((shape) => {
+                                        const isPlaced = placedParts[shape.id];
+                                        const isSelected = selectedPiece && selectedPiece.id === shape.id;
+                                        const isShaking = shakePiece === shape.id;
+
+                                        if (isPlaced) return null;
+
+                                        return (
+                                            <div
+                                                key={shape.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, shape)}
+                                                onClick={() => handlePieceClick(shape)}
+                                                className={`w-20 h-20 md:w-28 md:h-28 bg-white rounded-3xl p-2 shadow-lg cursor-pointer flex flex-col items-center justify-center transition-all transform active:scale-90 hover:scale-105 border-4
+                                                    ${isSelected ? 'border-amber-400 scale-110 shadow-amber-300/50' : 'border-gray-100'}
+                                                    ${isShaking ? 'shake-soft border-red-500 bg-red-50' : ''}
+                                                `}
+                                            >
+                                                <ShapeSVG type={shape.svgType} color={shape.color} />
+                                                <span className="title-font text-[10px] md:text-xs text-gray-700 mt-1">{shape.name}</span>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* BOTÃO DE AVANÇAR DE FASE */}
+                                    {isCompleted && (
+                                        <button 
+                                            onClick={goToNextLevel}
+                                            className="bg-emerald-500 hover:bg-emerald-400 text-white title-font text-xl md:text-3xl px-8 py-4 rounded-3xl shadow-2xl active:scale-95 border-4 border-white animate-bounce flex items-center gap-3"
+                                        >
+                                            <span>{currentLevelIdx < LEVELS_CONFIG.length - 1 ? 'PRÓXIMA FASE' : 'JOGAR DE NOVO'}</span>
+                                            <i className="fas fa-arrow-right"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+                    )}
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

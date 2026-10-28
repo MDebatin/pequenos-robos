@@ -1,0 +1,26 @@
+.path-layout{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;justify-items:center}
+.path-board{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:6px;width:min(100%,calc(var(--cols) * 96px));margin:auto;padding:12px;background:#e5f7df;border-radius:24px;touch-action:none;position:relative;user-select:none}
+.path-cell{aspect-ratio:1;background:#fff;border:3px solid #b9daca;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:clamp(1.6rem,5vw,2.6rem);line-height:1;transition:background .25s}
+.path-cell.goal{background:#fff8d6;box-shadow:inset 0 0 0 4px #ffd86b}
+.path-cell.obstacle{background:#dce7ef;border-color:#aebcc8}
+.path-cell.visited{background:#f3fbef}
+.path-cell.visited:after{content:"•";color:#9bc9a8;font-size:1.2rem}
+.path-cell.reached{background:#ffe9a0}
+.path-star{display:inline-block;animation:twinkle 1.6s ease-in-out infinite}
+.path-robot{grid-column:1;grid-row:1;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(1.9rem,6vw,3.2rem);line-height:1;pointer-events:none;transition:transform .3s ease;z-index:2;filter:drop-shadow(0 4px 2px #0002)}
+.path-robot-face{display:inline-block;transition:transform .2s}
+.path-robot.facing-left .path-robot-face{transform:scaleX(-1)}
+.path-robot.bump .path-robot-face{animation:bumpShake .35s}
+.path-robot.arrived .path-robot-face{animation:arrive .8s ease-in-out infinite}
+.dpad{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);gap:6px}
+.dpad-button{background:#fff;box-shadow:0 5px 0 #d9e7ef;font-size:2rem;min-height:0;border:4px solid transparent;border-radius:18px;display:flex;align-items:center;justify-content:center}
+.dpad-button.up{grid-column:2;grid-row:1}
+.dpad-button.left{grid-column:1;grid-row:2}
+.dpad-button.center{grid-column:2;grid-row:2;background:#e5f7df;box-shadow:none;opacity:1;font-size:1.6rem}
+.dpad-button.right{grid-column:3;grid-row:2}
+.dpad-button.down{grid-column:2;grid-row:3}
+.path-help{margin-top:12px}
+@keyframes twinkle{50%{transform:scale(1.18) rotate(8deg)}}
+@keyframes bumpShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes arrive{50%{transform:translateY(-10px) rotate(-8deg)}}
+@media(max-width:760px){.path-layout{grid-template-columns:1fr}.path-board{width:min(100%,calc(var(--cols) * 72px))}.dpad{grid-template-columns:repeat(3,68px);grid-template-rows:repeat(3,68px)}}

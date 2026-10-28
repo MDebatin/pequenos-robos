@@ -1,0 +1,20 @@
+.shapes-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.8fr);gap:18px}
+.robot-scene{min-height:460px;background:linear-gradient(#e0f7ff,#fff 75%);border-radius:24px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:10px}
+.robot-scene:after{content:"";position:absolute;bottom:-35px;left:-10%;width:120%;height:100px;border-radius:50%;background:#c9f0d7}
+.robot-svg{width:min(100%,480px);height:auto;position:relative;z-index:1;overflow:visible}
+.robot-slot{cursor:pointer;outline:none;transform-box:fill-box;transform-origin:center}
+.robot-slot.is-target{animation:slotPulse 1.1s infinite;filter:drop-shadow(0 0 7px #e6a51f)}
+.robot-slot.is-over{filter:drop-shadow(0 0 9px #2b9b74)}
+.robot-slot.is-filled{animation:piecePop .4s}
+.robot-slot:focus-visible{outline:4px solid var(--focus)}
+.shapes-side{display:flex;flex-direction:column;justify-content:center;gap:10px}
+.shape-bank{display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:12px}
+.shape-piece{background:#fff;border:4px solid var(--line);padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:140px;transition:transform .15s}
+.shape-piece.is-selected{border-color:var(--highlight);box-shadow:0 0 0 5px var(--highlight-soft);transform:translateY(-3px)}
+.shape-piece.is-used{opacity:.4;cursor:default}
+.shape-piece strong{font-size:1rem}
+.shape-svg{width:82px;height:82px;pointer-events:none}
+.piece-mark{font-size:.85rem;color:var(--muted);text-align:center}
+@keyframes piecePop{50%{transform:scale(1.12)}}
+@media(max-width:760px){.shapes-layout{grid-template-columns:1fr}.robot-scene{min-height:0}.robot-svg{width:min(100%,380px)}.shape-bank{grid-template-columns:repeat(4,minmax(64px,1fr));gap:8px}.shape-piece{min-height:106px;padding:6px}.shape-svg{width:52px;height:52px}.shape-piece strong{font-size:.8rem}.piece-mark{font-size:.68rem}}
+@media(max-width:430px){.shape-bank{grid-template-columns:repeat(4,1fr);gap:6px}.shape-piece{min-height:92px;padding:4px}.shape-svg{width:44px;height:44px}}

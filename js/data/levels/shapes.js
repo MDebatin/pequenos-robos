@@ -1,0 +1,10 @@
+export const shapeLevels = [
+  { level: 1, robot: 'classic', title: 'Os Primeiros Passos', parts: ['head', 'body'], hint: 'always', intro: 'Vamos montar o robô! Encaixe a cabeça redonda e o tronco quadrado.', outro: 'Demais! O robô já tem cabeça e tronco!' },
+  { level: 2, robot: 'classic', title: 'Robô Amigo', parts: ['head', 'body', 'hat', 'legLeft'], hint: 'always', intro: 'Agora o robô ganha um chapéu triangular e uma perna!', outro: 'Sensacional! O Robô Amigo está pronto!' },
+  { level: 3, robot: 'classic', title: 'Robô Detetive', parts: ['head', 'body', 'hat', 'legLeft', 'legRight', 'ear'], hint: 'error', intro: 'Olhe com atenção: cada forma tem o seu lugar!', outro: 'Parabéns, detetive! Você encontrou todos os lugares!' },
+  { level: 4, robot: 'classic', title: 'Robô Artista', parts: ['head', 'body', 'hat', 'legLeft', 'legRight', 'ear', 'badge'], hint: 'error', intro: 'O Robô Artista precisa de um emblema losango!', outro: 'Que obra-prima! O Robô Artista ficou lindo!' },
+  { level: 5, robot: 'classic', title: 'Mestre Construtor', parts: ['head', 'body', 'hat', 'legLeft', 'legRight', 'ear', 'badge', 'core'], hint: 'error', intro: 'Encaixe o coração de estrela e complete o grande robô!', outro: 'Incrível! Você é o Mestre Construtor!' },
+  { level: 6, robot: 'round', title: 'Robô Redondo', parts: ['headB', 'bodyB'], hint: 'always', intro: 'Um robô novo! Ele tem a cabeça quadrada e o tronco redondo.', outro: 'Muito bem! O Robô Redondo está nascendo!' },
+  { level: 7, robot: 'round', title: 'Robô Redondo Passeia', parts: ['headB', 'bodyB', 'hatB', 'footLeftB', 'footRightB'], hint: 'error', intro: 'Agora ele ganha um chapéu hexágono e dois pés de meia-lua!', outro: 'Olha só! Agora ele pode passear!' },
+  { level: 8, robot: 'round', title: 'Robô Redondo Completo', parts: ['headB', 'bodyB', 'hatB', 'footLeftB', 'footRightB', 'armLeftB', 'armRightB', 'heartB'], hint: 'error', intro: 'Última fase! Braços ovais e um coração para o Robô Redondo!', outro: 'Uau! Você montou os dois robôs. Você é um grande construtor!' }
+];
